@@ -39,6 +39,15 @@ public struct ImageFlagView: View {
                 .resizable()
                 .aspectRatio(contentMode: contentMode)
                 .clipShape(Circle())
+        case .rounded(let radius):
+            Color.clear
+                .aspectRatio(contentMode: contentMode)
+                .overlay(
+                    Image(countryCode.lowercased(), bundle: .currentModule)
+                        .resizable()
+                        .scaledToFill()
+                )
+                .clipShape(RoundedRectangle(cornerRadius: radius))
         }
     }
 }
@@ -48,14 +57,15 @@ public extension ImageFlagView {
     enum Style {
         case `default`
         case circle
+        case rounded(CGFloat)
     }
 }
 
 struct ImageFlagView_Previews: PreviewProvider {
     static var previews: some View {
         ImageFlagView(
-            countryCode: "eu",
-            style: .circle,
+            countryCode: "ru",
+            style: .rounded(24),
             contentMode: .fill
         )
             .frame(width: 100, height: 100)

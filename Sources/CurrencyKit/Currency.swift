@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Currency: Identifiable, Codable {
+public struct Currency: Identifiable, Codable, Hashable {
 
     public let id: String
     public let code: String
@@ -10,15 +10,16 @@ public struct Currency: Identifiable, Codable {
     private let locale: Locale
 
     public init(withCode code: String, localeType: LocaleType = .device) {
-        id = UUID().uuidString
+        id = code
         self.code = code.uppercased()
-        switch localeType {
-            case .device: locale = Locale.current
-            case .currency: locale = Locale(identifier: code)
-        }
         self.description = Locale.current.localizedString(forCurrencyCode: code) ?? ""
+        switch localeType {
+        case .device: locale = Locale.current
+        case .currency: locale = Currency.getLocale(fromCode: self.code)
+        case .custom(let locale): self.locale = locale
+        }
         let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: code)
+        formatter.locale = locale
         self.symbol = formatter.currencySymbol ?? ""
     }
 
@@ -41,6 +42,31 @@ public extension Currency {
             return ""
         }
     }
+
+    static func getLocale(fromCode code: String) -> Locale {
+        let code = code.uppercased()
+        let identifiers = Locale.availableIdentifiers.filter({ Locale(identifier: $0).currencyCode == code })
+        var identifier = identifiers.filter { $0.contains("en") }.first ?? ""
+
+        for id in identifiers {
+            let elements = id.components(separatedBy: "_")
+
+            guard elements.count == 2 else { continue }
+            guard let prefix = elements.first, let postfix = elements.last else { continue }
+
+            if let prefixChar = prefix.first,
+               let postfixChar = postfix.lowercased().first,
+               prefixChar == postfixChar {
+                identifier = id
+            }
+            if prefix == postfix.lowercased() {
+                identifier = id
+                break
+            }
+        }
+
+        return identifier.isEmpty ? Locale(identifier: code) : Locale(identifier: identifier)
+    }
 }
 
 public extension Currency {
@@ -48,6 +74,7 @@ public extension Currency {
     enum LocaleType {
         case device
         case currency
+        case custom(Locale)
     }
 }
 
